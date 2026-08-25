@@ -8,7 +8,7 @@ export default async function handler(req, res) {
 
   const { agency, numClients, numHigh, numMedium, numGreen, hrsPerClient, rate, leakMonthly } = req.body;
 
-  // Aggregate counts only — never the pasted client names or revenue numbers.
+  // Aggregate counts only. Never the pasted client names or revenue numbers.
   await fetch(`${SUPABASE_URL}/rest/v1/leak_audit_submissions`, {
     method: 'POST',
     headers: {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     }),
   });
 
-  const label = agency ? `*${agency}*` : '_(no agency — direct link)_';
+  const label = agency ? `*${agency}*` : '_(no agency, direct link)_';
   const fmt = n => '$' + Number(n).toLocaleString();
 
   await fetch('https://slack.com/api/chat.postMessage', {
@@ -41,11 +41,11 @@ export default async function handler(req, res) {
     body: JSON.stringify({
       channel: SLACK_CHANNEL,
       unfurl_links: false,
-      text: `:rotating_light: Reporting Leak Audit — ${agency || 'unknown'}`,
+      text: `:rotating_light: Reporting Leak Audit for ${agency || 'unknown'}`,
       blocks: [
         {
           type: 'section',
-          text: { type: 'mrkdwn', text: `:rotating_light: *Reporting Leak Audit run* — ${label}` },
+          text: { type: 'mrkdwn', text: `:rotating_light: *Reporting Leak Audit run* for ${label}` },
         },
         {
           type: 'section',

@@ -19,7 +19,7 @@ create table leak_audit_submissions (
 ```
 
 ## 2. Vercel env vars (new project)
-Same three vars already used by dtc-attribution-calculator — either reuse the same values or point to the same Slack channel:
+Same three vars already used by dtc-attribution-calculator. Either reuse the same values or point to the same Slack channel:
 - `SUPABASE_SERVICE_KEY`
 - `SLACK_TOKEN`
 - `SLACK_CHANNEL_ID`
@@ -31,5 +31,5 @@ vercel --prod
 ```
 
 ## Notes
-- No client names or revenue numbers are ever sent to the backend — only aggregate counts (client count, flag counts, assumed hrs/rate, computed leak $). Safe even if someone pastes real client data instead of the sample.
+- No client names or revenue numbers are ever sent to the backend. Only aggregate counts (client count, flag counts, assumed hrs/rate, computed leak $). Safe even if someone pastes real client data instead of the sample.
 - `?agency=Name` in the URL personalizes the CTA link exactly like the attribution calculator, for outreach/LinkedIn links.

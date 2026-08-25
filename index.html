@@ -17,32 +17,41 @@
       padding: 3rem 1.5rem 5rem;
     }
 
-    .wrap { max-width: 720px; margin: 0 auto; }
+    .wrap { max-width: 760px; margin: 0 auto; }
 
-    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
-    .sub { color: #888; font-size: 14px; margin-bottom: 2rem; max-width: 560px; }
+    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.3rem; }
+    .sub { color: #888; font-size: 14px; margin-bottom: 2rem; }
 
-    label { display: block; font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    label { display: block; font-size: 11px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
 
     textarea {
       width: 100%;
       background: #0c0c0c;
       border: 1px solid #222;
-      border-radius: 6px;
+      border-radius: 8px;
       color: #ddd;
       font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 12.5px;
+      font-size: 12px;
       line-height: 1.7;
       padding: 12px 14px;
       outline: none;
       resize: vertical;
       white-space: pre;
       overflow-x: auto;
+      transition: border-color 0.2s;
     }
     textarea:focus { border-color: #ff6b1a; }
 
-    .hint { color: #555; font-size: 12px; margin-top: 8px; line-height: 1.6; }
-    .hint code { color: #888; background: #111; padding: 1px 5px; border-radius: 3px; }
+    details.hint { margin-top: 10px; }
+    details.hint summary {
+      cursor: pointer; color: #666; font-size: 12px; list-style: none;
+      display: inline-flex; align-items: center; gap: 5px; user-select: none;
+    }
+    details.hint summary::before { content: '⌄'; display: inline-block; transition: transform 0.15s; font-size: 13px; }
+    details.hint[open] summary::before { transform: rotate(-180deg); }
+    details.hint summary:hover { color: #999; }
+    details.hint .body { color: #555; font-size: 12px; line-height: 1.7; margin-top: 8px; padding-left: 2px; }
+    details.hint code { color: #888; background: #111; padding: 1px 5px; border-radius: 3px; }
 
     .btn-row { display: flex; align-items: center; gap: 1.2rem; margin-top: 1rem; flex-wrap: wrap; }
 
@@ -53,11 +62,13 @@
       color: #000;
       font-size: 14px;
       font-weight: 800;
-      border-radius: 6px;
+      border-radius: 7px;
       cursor: pointer;
       letter-spacing: 0.02em;
+      transition: transform 0.1s, opacity 0.15s;
     }
     button:hover { opacity: 0.9; }
+    button:active { transform: scale(0.97); }
 
     .link-btn {
       background: none; border: none; color: #666; font-weight: 500;
@@ -70,55 +81,102 @@
     #results { display: none; }
     #results.show { display: block; }
 
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.8rem; }
-    .stat { background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 8px; padding: 14px; text-align: center; }
-    .stat .num { font-size: 1.6rem; font-weight: 800; }
-    .stat .lbl { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
-    .stat.red .num { color: #ef4444; }
-    .stat.yellow .num { color: #eab308; }
-    .stat.green .num { color: #22c55e; }
-
-    .leak-banner {
-      background: #0c0c0c; border: 1px solid #ff6b1a; border-radius: 8px;
-      padding: 18px 20px; margin-bottom: 1.8rem;
+    /* Summary: ring chart + legend */
+    .summary {
+      display: flex; align-items: center; gap: 2rem;
+      background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 12px;
+      padding: 1.6rem; margin-bottom: 1.4rem; flex-wrap: wrap;
     }
-    .leak-banner .big { font-size: 1.5rem; font-weight: 800; color: #ff6b1a; }
-    .leak-banner .desc { color: #888; font-size: 13px; margin-top: 4px; }
-    .leak-inputs { display: flex; gap: 1.5rem; margin-top: 12px; flex-wrap: wrap; }
-    .leak-inputs .fld { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
-    .leak-inputs input {
-      width: 60px; background: #111; border: 1px solid #222; border-radius: 4px;
+    .ring-box { position: relative; width: 130px; height: 130px; flex-shrink: 0; }
+    .ring-box svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-box .track { fill: none; stroke: #1a1a1a; stroke-width: 12; }
+    .ring-box .seg { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dasharray 1s cubic-bezier(.2,.8,.2,1); }
+    .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ring-center .n { font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .ring-center .l { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-top: -2px; }
+
+    .legend { display: flex; flex-direction: column; gap: 10px; flex: 1; min-width: 160px; }
+    .legend-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot.high { background: #ef4444; animation: pulseDot 1.8s ease-in-out infinite; }
+    .dot.medium { background: #eab308; }
+    .dot.green { background: #22c55e; }
+    .legend-row .n { font-weight: 800; font-variant-numeric: tabular-nums; margin-left: auto; }
+    @keyframes pulseDot {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); }
+      50%      { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+    }
+
+    /* Leak bar chart */
+    .leak-card {
+      background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 12px;
+      padding: 1.6rem; margin-bottom: 1.4rem;
+    }
+    .leak-headline { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+    .leak-amount { font-size: 2rem; font-weight: 800; color: #ff6b1a; font-variant-numeric: tabular-nums; margin-bottom: 1rem; }
+
+    .leak-assume { display: flex; gap: 1.2rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+    .leak-assume .fld { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+    .leak-assume input {
+      width: 55px; background: #111; border: 1px solid #222; border-radius: 5px;
       color: #fff; font-size: 13px; padding: 5px 8px; outline: none;
     }
-    .leak-inputs input:focus { border-color: #ff6b1a; }
+    .leak-assume input:focus { border-color: #ff6b1a; }
 
-    .compare { margin-top: 14px; border-top: 1px solid #1a1a1a; padding-top: 12px; }
-    .compare-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 4px 0; color: #999; }
-    .compare-row span:last-child { color: #ccc; font-weight: 600; }
-    .compare-row.ours span:last-child { color: #ff6b1a; }
+    .bars { display: flex; flex-direction: column; gap: 12px; }
+    .bar-row { display: grid; grid-template-columns: 108px 1fr 90px; align-items: center; gap: 10px; }
+    .bar-row .bl { font-size: 12px; color: #999; }
+    .bar-row .bl.ours { color: #ff6b1a; font-weight: 700; }
+    .bar-track { position: relative; height: 20px; background: #131313; border-radius: 5px; overflow: hidden; }
+    .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; border-radius: 5px; transition: width 1s cubic-bezier(.2,.8,.2,1); }
+    .bar-fill.leak { background: linear-gradient(90deg, #ff6b1a, #ff8c42); }
+    .bar-fill.tool { background: #2a2a2a; }
+    .bar-fill.offer { background: #22c55e; opacity: 0.55; }
+    .bar-row .bv { font-size: 12px; color: #ccc; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 1.8rem; }
-    th { text-align: left; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 1px solid #222; }
-    td { padding: 10px; border-bottom: 1px solid #161616; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+    /* Client cards */
+    .cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.6rem; }
+    .card {
+      background: #0c0c0c; border: 1px solid #1a1a1a; border-left: 3px solid #333; border-radius: 8px;
+      padding: 12px 14px; opacity: 0; transform: translateY(8px);
+      animation: fadeSlideUp 0.45s ease forwards;
+      animation-delay: calc(var(--i) * 55ms);
+    }
+    .card.high { border-left-color: #ef4444; }
+    .card.medium { border-left-color: #eab308; }
+    .card.green { border-left-color: #22c55e; }
+    @keyframes fadeSlideUp { to { opacity: 1; transform: translateY(0); } }
 
-    .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
-    .pill.high { background: rgba(239,68,68,0.15); color: #ef4444; }
-    .pill.medium { background: rgba(234,179,8,0.15); color: #eab308; }
-    .pill.green { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .card-row { display: grid; grid-template-columns: 1fr 130px 60px; align-items: center; gap: 14px; }
+    .card-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .card-name { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
-    .card { background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 8px; padding: 16px 18px; }
-    .card.high { border-left: 3px solid #ef4444; }
-    .card.medium { border-left: 3px solid #eab308; }
-    .card.green { border-left: 3px solid #22c55e; }
-    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .card-name { font-weight: 700; font-size: 14px; }
-    .card-body { white-space: pre-line; color: #aaa; font-size: 13px; line-height: 1.7; }
+    .delta-track { position: relative; height: 8px; background: #161616; border-radius: 4px; }
+    .delta-track::before {
+      content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: #333;
+    }
+    .delta-fill { position: absolute; top: 0; bottom: 0; width: 0%; border-radius: 4px; transition: width 0.9s cubic-bezier(.2,.8,.2,1), left 0.9s cubic-bezier(.2,.8,.2,1); }
+    .delta-fill.high { background: #ef4444; }
+    .delta-fill.medium { background: #eab308; }
+    .delta-fill.green { background: #22c55e; }
+    .card-roas { font-size: 12px; color: #888; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .card details { margin-top: 6px; }
+    .card summary {
+      cursor: pointer; color: #666; font-size: 11.5px; list-style: none;
+      display: inline-flex; align-items: center; gap: 4px; user-select: none;
+    }
+    .card summary::before { content: '⌄'; display: inline-block; transition: transform 0.15s; }
+    .card details[open] summary::before { transform: rotate(-180deg); }
+    .card summary:hover { color: #999; }
+    .card-body {
+      white-space: pre-line; color: #aaa; font-size: 12.5px; line-height: 1.7;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid #161616;
+      display: flex; justify-content: space-between; gap: 12px; align-items: flex-end;
+    }
     .copy-btn {
       background: none; border: 1px solid #333; color: #888; font-size: 11px; font-weight: 600;
-      padding: 4px 10px; border-radius: 5px; cursor: pointer; letter-spacing: normal;
+      padding: 4px 10px; border-radius: 5px; cursor: pointer; letter-spacing: normal; flex-shrink: 0;
     }
     .copy-btn:hover { border-color: #ff6b1a; color: #ff6b1a; }
     .copy-btn.copied { border-color: #22c55e; color: #22c55e; }
@@ -126,76 +184,87 @@
     .cta {
       display: block; text-align: center; margin-top: 0.5rem;
       padding: 14px; background: #ff6b1a; color: #000; font-weight: 800; font-size: 14px;
-      border-radius: 6px; text-decoration: none; letter-spacing: 0.02em;
+      border-radius: 7px; text-decoration: none; letter-spacing: 0.02em;
     }
     .cta:hover { opacity: 0.9; }
-    .cta-sub { text-align: center; color: #555; font-size: 12px; margin-top: 10px; }
+    .cta-sub { text-align: center; color: #555; font-size: 11.5px; margin-top: 10px; }
 
-    footer { margin-top: 3rem; color: #444; font-size: 11.5px; line-height: 1.7; }
+    footer { margin-top: 3rem; color: #444; font-size: 11px; }
+
+    @media (max-width: 480px) {
+      .card-row { grid-template-columns: 1fr 90px 46px; gap: 8px; }
+      .bar-row { grid-template-columns: 78px 1fr 70px; }
+      .summary { flex-direction: column; text-align: center; }
+      .legend { width: 100%; }
+    }
   </style>
 </head>
 <body>
 <div class="wrap">
 
   <h1>The Reporting Leak Audit</h1>
-  <p class="sub">Paste your client roster. See which accounts need attention today, get a client-ready update written for you, and find out what doing this by hand is actually costing you.</p>
+  <p class="sub">Paste your clients. See who needs you today.</p>
 
   <label>Client roster</label>
-  <textarea id="input" rows="12"></textarea>
-  <p class="hint">
-    First row is a header — keep it or overwrite it. Required columns: <code>Client, Spend, Revenue This Period, Revenue Last Period</code>.
-    Optional (for subscription clients): <code>Churn % This, Avg Churn % (3mo), LTV This Month, Avg LTV (3mo)</code> — leave blank if you don't track them.
-  </p>
+  <textarea id="input" rows="11"></textarea>
+
+  <details class="hint">
+    <summary>Column format</summary>
+    <div class="body">
+      Required: <code>Client, Spend, Revenue This Period, Revenue Last Period</code><br>
+      Optional (subscription clients): <code>Churn % This, Avg Churn % 3mo, LTV This Month, Avg LTV 3mo</code>, leave blank if unused.
+    </div>
+  </details>
 
   <div class="btn-row">
     <button onclick="runAnalysis(true)">Analyze My Clients</button>
-    <button class="link-btn" onclick="loadSample()">Reload sample data</button>
+    <button class="link-btn" onclick="loadSample()">Reload sample</button>
     <button class="link-btn" onclick="clearInput()">Clear</button>
   </div>
 
   <div class="divider"></div>
 
   <div id="results">
-    <div class="stats">
-      <div class="stat" id="stat-total"><div class="num">0</div><div class="lbl">Clients analyzed</div></div>
-      <div class="stat red" id="stat-high"><div class="num">0</div><div class="lbl">Need attention today</div></div>
-      <div class="stat yellow" id="stat-medium"><div class="num">0</div><div class="lbl">Worth watching</div></div>
+
+    <div class="summary">
+      <div class="ring-box">
+        <svg viewBox="0 0 130 130">
+          <circle class="track" cx="65" cy="65" r="54"></circle>
+          <circle id="seg-high"   class="seg" cx="65" cy="65" r="54" stroke="#ef4444"></circle>
+          <circle id="seg-medium" class="seg" cx="65" cy="65" r="54" stroke="#eab308"></circle>
+          <circle id="seg-green"  class="seg" cx="65" cy="65" r="54" stroke="#22c55e"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="n" id="ring-total">0</div>
+          <div class="l">clients</div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-row"><span class="dot high"></span> Need attention <span class="n" id="cnt-high">0</span></div>
+        <div class="legend-row"><span class="dot medium"></span> Worth watching <span class="n" id="cnt-medium">0</span></div>
+        <div class="legend-row"><span class="dot green"></span> On track <span class="n" id="cnt-green">0</span></div>
+      </div>
     </div>
 
-    <div class="leak-banner">
-      <div class="big" id="leak-amount">$0/month</div>
-      <div class="desc">is what this analysis would cost you to do by hand every month.</div>
-      <div class="leak-inputs">
-        <div class="fld">Assuming <input type="number" id="hrs" value="15" min="1" onchange="recomputeLeak()"> hrs/client</div>
-        <div class="fld">at $<input type="number" id="rate" value="75" min="1" onchange="recomputeLeak()"> /hr</div>
+    <div class="leak-card">
+      <div class="leak-headline">Cost of doing this by hand</div>
+      <div class="leak-amount" id="leak-amount">$0/mo</div>
+
+      <div class="leak-assume">
+        <div class="fld"><input type="number" id="hrs" value="15" min="1" onchange="renderLeak()"> hrs/client</div>
+        <div class="fld">$<input type="number" id="rate" value="75" min="1" onchange="renderLeak()"> /hr</div>
       </div>
-      <div class="compare">
-        <div class="compare-row"><span>AgencyAnalytics ($20/client/mo)</span><span id="cmp-aa"></span></div>
-        <div class="compare-row"><span>Whatagraph</span><span>$215–$760/mo flat</span></div>
-        <div class="compare-row"><span>DashThis</span><span>$44–$429/mo flat</span></div>
-        <div class="compare-row ours"><span>Done-for-you setup + monitoring</span><span>$3,500 + $750/mo flat</span></div>
-      </div>
+
+      <div class="bars" id="bars"></div>
     </div>
 
-    <table id="triage-table">
-      <thead>
-        <tr>
-          <th>Client</th><th>Status</th><th class="num-cell">Revenue Δ</th>
-          <th class="num-cell">Spend</th><th class="num-cell">ROAS</th>
-        </tr>
-      </thead>
-      <tbody id="triage-body"></tbody>
-    </table>
+    <div class="cards" id="cards"></div>
 
-    <div class="cards" id="narrative-cards"></div>
-
-    <a class="cta" id="cta" href="https://calendly.com/unaiza-autonixlab/discovery-call" target="_blank">See This Running Automatically, Every Week, Across All Your Clients</a>
-    <p class="cta-sub">Free tool runs once, on numbers you paste in. The full version connects to your platforms and does this daily, for every client, with zero copy-pasting.</p>
+    <a class="cta" id="cta" href="https://calendly.com/unaiza-autonixlab/discovery-call" target="_blank">See This Running Automatically, Every Week</a>
+    <p class="cta-sub">This runs once, on demand. The paid version runs itself, for every client.</p>
   </div>
 
-  <footer>
-    Everything above runs in your browser — the math never leaves your machine. Clicking "Analyze" or the CTA logs an anonymous summary (client count, flag counts, no client names or numbers) for our own product research.
-  </footer>
+  <footer>Runs entirely in your browser. Only anonymous counts are ever logged, never client names or numbers.</footer>
 </div>
 
 <script>
@@ -207,27 +276,25 @@
 const COLS = ['name','spend','thisRev','lastRev','churnThis','churnAvg','ltvThis','ltvAvg'];
 
 const SAMPLE = [
-  { name: 'Lumen Skincare',          spend: 18000, thisRev: 42000, lastRev: 61000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'Northfield Coffee Co.',   spend: 9000,  thisRev: 27000, lastRev: 29500, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'Verve Supplements',       spend: 25000, thisRev: 58000, lastRev: 64000, churnThis: 14.2,   churnAvg: 8.1,   ltvThis: 210,   ltvAvg: 245   },
-  { name: 'Basecamp Apparel',        spend: 14000, thisRev: 39000, lastRev: 22000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'PawFuel Pet Co.',         spend: 12000, thisRev: 21000, lastRev: 30500, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'Solstice Eyewear',        spend: 20000, thisRev: 46000, lastRev: 52000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'Kindling Candle Co.',     spend: 6000,  thisRev: 15000, lastRev: 19000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'Fenwick Fitness Gear',    spend: 30000, thisRev: 71000, lastRev: 90000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
-  { name: 'Bloom Botanicals',        spend: 16000, thisRev: 38000, lastRev: 40000, churnThis: 9.5,    churnAvg: 9.0,   ltvThis: 180,   ltvAvg: 215   },
-  { name: 'Harbor & Oak Home Goods', spend: 22000, thisRev: 55000, lastRev: 53000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Lumen Skincare',          spend: 18000, thisRev: 42000, lastRev: 61000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'Northfield Coffee Co.',   spend: 9000,  thisRev: 27000, lastRev: 29500, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'Verve Supplements',       spend: 25000, thisRev: 58000, lastRev: 64000, churnThis: 14.2, churnAvg: 8.1, ltvThis: 210, ltvAvg: 245 },
+  { name: 'Basecamp Apparel',        spend: 14000, thisRev: 39000, lastRev: 22000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'PawFuel Pet Co.',         spend: 12000, thisRev: 21000, lastRev: 30500, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'Solstice Eyewear',        spend: 20000, thisRev: 46000, lastRev: 52000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'Kindling Candle Co.',     spend: 6000,  thisRev: 15000, lastRev: 19000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'Fenwick Fitness Gear',    spend: 30000, thisRev: 71000, lastRev: 90000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
+  { name: 'Bloom Botanicals',        spend: 16000, thisRev: 38000, lastRev: 40000, churnThis: 9.5,  churnAvg: 9.0, ltvThis: 180, ltvAvg: 215 },
+  { name: 'Harbor & Oak Home Goods', spend: 22000, thisRev: 55000, lastRev: 53000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
 ];
 
 function toTSV(rows){
-  const header = 'Client\tSpend\tRevenue This Period\tRevenue Last Period\tChurn % This\tAvg Churn % (3mo)\tLTV This Month\tAvg LTV (3mo)';
+  const header = 'Client\tSpend\tRevenue This Period\tRevenue Last Period\tChurn % This\tAvg Churn % 3mo\tLTV This Month\tAvg LTV 3mo';
   const lines = rows.map(r => COLS.map(c => r[c]).join('\t'));
   return [header, ...lines].join('\n');
 }
 
-function loadSample(){
-  document.getElementById('input').value = toTSV(SAMPLE);
-}
+function loadSample(){ document.getElementById('input').value = toTSV(SAMPLE); }
 function clearInput(){
   document.getElementById('input').value = '';
   document.getElementById('results').classList.remove('show');
@@ -238,8 +305,7 @@ function fmt(n){ return '$' + Math.round(n).toLocaleString(); }
 function parseInput(text){
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return [];
-  const dataLines = lines.slice(1); // skip header
-  return dataLines.map(line => {
+  return lines.slice(1).map(line => {
     const cells = line.includes('\t') ? line.split('\t') : line.split(',');
     const get = i => (cells[i] !== undefined ? cells[i].trim() : '');
     return {
@@ -278,48 +344,50 @@ function computeFlags(row){
 
 function nextStepFor(flags){
   if (flags.some(f => f.type === 'churn' && f.severity === 'high'))
-    return 'Loop in retention/CRM. This usually traces back to a recent price change, a shipping delay, or a cohort quality issue, not the ad account.';
+    return 'Loop in retention/CRM. Usually a price change, a shipping delay, or a cohort issue, not the ad account.';
   if (flags.some(f => f.type === 'revenue' && f.severity === 'high'))
-    return 'Pull the channel-level breakdown before the client asks. This is a same-week conversation, not a line in next month\'s report.';
+    return 'Pull the channel breakdown before the client asks. Same-week conversation, not next month\'s report.';
   if (flags.some(f => f.type === 'ltv'))
-    return 'Check whether this is a mix-shift toward one-time buyers before flagging subscriber value as actually declining.';
+    return 'Check for a mix-shift toward one-time buyers before flagging subscriber value as declining.';
   if (flags.some(f => f.type === 'revenue' && f.severity === 'medium'))
-    return 'Worth a mention in the next check-in. Watch next period before raising it as a problem.';
+    return 'Worth a mention next check-in. Watch one more period before raising it as a problem.';
   return 'Nothing here needs your attention this week.';
 }
 
 function narrativeFor(row, flags, severity, dropPct){
   const statusLabel = severity === 'high' ? 'Needs attention today' : severity === 'medium' ? 'Worth watching' : 'On track';
-  const lines = [];
-  lines.push(`${row.name} — ${statusLabel}`);
+  const lines = [`${row.name}: ${statusLabel}`];
   if (dropPct !== null) {
     const dir = dropPct >= 0 ? 'down' : 'up';
     lines.push(`Revenue: ${fmt(row.thisRev)} this period vs ${fmt(row.lastRev)} last period (${dir} ${Math.abs(dropPct).toFixed(0)}%).`);
   }
-  if (row.spend > 0) {
-    lines.push(`Spend: ${fmt(row.spend)}. ROAS: ${(row.thisRev / row.spend).toFixed(2)}x.`);
-  }
-  if (row.churnThis !== '' && row.churnAvg !== '') {
-    lines.push(`Churn: ${row.churnThis}% this period vs ${row.churnAvg}% average.`);
-  }
-  if (row.ltvThis !== '' && row.ltvAvg !== '') {
-    lines.push(`LTV: ${fmt(row.ltvThis)} this month vs ${fmt(row.ltvAvg)} average.`);
-  }
+  if (row.spend > 0) lines.push(`Spend: ${fmt(row.spend)}. ROAS: ${(row.thisRev / row.spend).toFixed(2)}x.`);
+  if (row.churnThis !== '' && row.churnAvg !== '') lines.push(`Churn: ${row.churnThis}% this period vs ${row.churnAvg}% average.`);
+  if (row.ltvThis !== '' && row.ltvAvg !== '') lines.push(`LTV: ${fmt(row.ltvThis)} this month vs ${fmt(row.ltvAvg)} average.`);
   lines.push(`Next step: ${nextStepFor(flags)}`);
   return lines.join('\n');
 }
 
 let lastRows = [];
 
+function animateNumber(el, to, duration, formatter){
+  const start = performance.now();
+  const from = 0;
+  function tick(now){
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const val = from + (to - from) * eased;
+    el.textContent = formatter ? formatter(val) : Math.round(val);
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
 function runAnalysis(shouldLog){
   const text = document.getElementById('input').value;
   const rows = parseInput(text);
   if (rows.length === 0) { alert('Paste at least one client row below the header.'); return; }
-  lastRows = rows.map(row => {
-    const { flags, severity, dropPct } = computeFlags(row);
-    return { row, flags, severity, dropPct };
-  });
-  // Sort: high first, then medium, then green
+  lastRows = rows.map(row => ({ row, ...computeFlags(row) }));
   const order = { high: 0, medium: 1, green: 2 };
   lastRows.sort((a, b) => order[a.severity] - order[b.severity]);
 
@@ -335,58 +403,101 @@ function runAnalysis(shouldLog){
   setTimeout(() => document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
 }
 
-function recomputeLeak(){
-  render(true);
+function renderRing(counts, total){
+  const r = 54, c = 2 * Math.PI * r;
+  let offset = 0;
+  [['seg-high', counts.high], ['seg-medium', counts.medium], ['seg-green', counts.green]].forEach(([id, n]) => {
+    const el = document.getElementById(id);
+    const frac = total > 0 ? n / total : 0;
+    const len = frac * c;
+    el.style.strokeDasharray = `${len} ${c - len}`;
+    el.style.strokeDashoffset = -offset;
+    offset += len;
+  });
+  animateNumber(document.getElementById('ring-total'), total, 700);
 }
 
-function render(leakOnly){
+function renderLeak(){
+  const n = lastRows.length;
+  const hrs = parseFloat(document.getElementById('hrs').value) || 0;
+  const rate = parseFloat(document.getElementById('rate').value) || 0;
+  const leakMonthly = n * hrs * rate;
+  const aa = n * 20;
+  const whatagraph = 400, dashthis = 235, offer = 750;
+  const max = Math.max(leakMonthly, aa, whatagraph, dashthis, offer, 1);
+
+  animateNumber(document.getElementById('leak-amount'), leakMonthly, 800, v => fmt(v) + '/mo');
+
+  const bars = [
+    { label: 'Doing it by hand', val: leakMonthly, valLabel: fmt(leakMonthly) + '/mo', cls: 'leak', ours: true },
+    { label: 'AgencyAnalytics',  val: aa,          valLabel: fmt(aa) + '/mo',          cls: 'tool' },
+    { label: 'Whatagraph',       val: whatagraph,  valLabel: '$215 to $760/mo',        cls: 'tool' },
+    { label: 'DashThis',         val: dashthis,    valLabel: '$44 to $429/mo',         cls: 'tool' },
+    { label: 'Done-for-you',     val: offer,       valLabel: '$750/mo flat',           cls: 'offer' },
+  ];
+
+  const el = document.getElementById('bars');
+  el.innerHTML = bars.map(b => `
+    <div class="bar-row">
+      <div class="bl ${b.ours ? 'ours' : ''}">${b.label}</div>
+      <div class="bar-track"><div class="bar-fill ${b.cls}" data-w="${Math.min(100, b.val / max * 100)}"></div></div>
+      <div class="bv">${b.valLabel}</div>
+    </div>
+  `).join('');
+
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.bar-fill').forEach(f => { f.style.width = f.dataset.w + '%'; });
+  });
+}
+
+function render(){
   const n = lastRows.length;
   const counts = { high: 0, medium: 0, green: 0 };
   lastRows.forEach(r => counts[r.severity]++);
 
-  const hrs = parseFloat(document.getElementById('hrs').value) || 0;
-  const rate = parseFloat(document.getElementById('rate').value) || 0;
-  const leakMonthly = n * hrs * rate;
-  document.getElementById('leak-amount').textContent = fmt(leakMonthly) + '/month';
-  document.getElementById('cmp-aa').textContent = fmt(n * 20) + '/mo';
+  document.getElementById('cnt-high').textContent = counts.high;
+  document.getElementById('cnt-medium').textContent = counts.medium;
+  document.getElementById('cnt-green').textContent = counts.green;
+  renderRing(counts, n);
+  renderLeak();
 
-  if (leakOnly) return;
-
-  document.querySelector('#stat-total .num').textContent = n;
-  document.querySelector('#stat-high .num').textContent = counts.high;
-  document.querySelector('#stat-medium .num').textContent = counts.medium;
-
-  const tbody = document.getElementById('triage-body');
-  tbody.innerHTML = '';
-  lastRows.forEach(({ row, severity, dropPct }) => {
-    const tr = document.createElement('tr');
-    const pillLabel = severity === 'high' ? 'Needs attention' : severity === 'medium' ? 'Watch' : 'On track';
-    const dropStr = dropPct !== null ? `${dropPct >= 0 ? '-' : '+'}${Math.abs(dropPct).toFixed(0)}%` : '—';
-    const roas = row.spend > 0 ? (row.thisRev / row.spend).toFixed(2) + 'x' : '—';
-    tr.innerHTML = `
-      <td>${row.name}</td>
-      <td><span class="pill ${severity}">${pillLabel}</span></td>
-      <td class="num-cell">${dropStr}</td>
-      <td class="num-cell">${fmt(row.spend)}</td>
-      <td class="num-cell">${roas}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  const cardsEl = document.getElementById('narrative-cards');
+  const cardsEl = document.getElementById('cards');
   cardsEl.innerHTML = '';
   lastRows.forEach(({ row, flags, severity, dropPct }, i) => {
+    const roas = row.spend > 0 ? (row.thisRev / row.spend).toFixed(2) + 'x' : 'N/A';
     const text = narrativeFor(row, flags, severity, dropPct);
+
+    const clamped = dropPct === null ? 0 : Math.max(-50, Math.min(50, dropPct));
+    const isGrowth = clamped < 0;
+    const magPct = Math.abs(clamped);
+    // Decline bars grow leftward from center, ending at 50%. Growth bars grow rightward, starting at 50%.
+    const left = isGrowth ? 50 : (50 - magPct);
+
     const card = document.createElement('div');
     card.className = `card ${severity}`;
+    card.style.setProperty('--i', i);
     card.innerHTML = `
-      <div class="card-top">
-        <span class="card-name">${row.name}</span>
-        <button class="copy-btn" id="copy-${i}">Copy update</button>
+      <div class="card-row">
+        <div class="card-name-wrap"><span class="card-name">${row.name}</span></div>
+        <div class="delta-track"><div class="delta-fill ${severity}" data-left="${left}" data-w="${magPct}"></div></div>
+        <div class="card-roas">${roas}</div>
       </div>
-      <div class="card-body">${text}</div>
+      <details>
+        <summary>${dropPct !== null ? (dropPct >= 0 ? 'down ' : 'up ') + Math.abs(dropPct).toFixed(0) + '%' : 'details'}</summary>
+        <div class="card-body">
+          <span>${text}</span>
+          <button class="copy-btn">Copy update</button>
+        </div>
+      </details>
     `;
     cardsEl.appendChild(card);
+
+    const fill = card.querySelector('.delta-fill');
+    requestAnimationFrame(() => {
+      fill.style.left = fill.dataset.left + '%';
+      fill.style.width = fill.dataset.w + '%';
+    });
+
     card.querySelector('.copy-btn').addEventListener('click', (e) => {
       navigator.clipboard.writeText(text).then(() => {
         e.target.textContent = 'Copied';
@@ -411,15 +522,11 @@ function logSubmission(counts, numClients){
     }),
   }).catch(() => {});
 
-  if (agency) {
-    document.getElementById('cta').href =
-      `https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit&utm_content=${encodeURIComponent(agency)}`;
-  } else {
-    document.getElementById('cta').href = 'https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit';
-  }
+  document.getElementById('cta').href = agency
+    ? `https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit&utm_content=${encodeURIComponent(agency)}`
+    : 'https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit';
 }
 
-// Auto-run once with sample data on load, silently (no logging), so the page shows results immediately.
 loadSample();
 runAnalysis(false);
 </script>

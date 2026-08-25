@@ -17,30 +17,48 @@
       padding: 3rem 1.5rem 5rem;
     }
 
-    .wrap { max-width: 760px; margin: 0 auto; }
+    .wrap { max-width: 800px; margin: 0 auto; }
 
     h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.3rem; }
-    .sub { color: #888; font-size: 14px; margin-bottom: 2rem; }
+    .sub { color: #888; font-size: 14px; margin-bottom: 6px; }
+    .byline { color: #555; font-size: 12px; margin-bottom: 2rem; }
+    .byline a { color: #888; }
+    .byline a:hover { color: #ff6b1a; }
 
-    label { display: block; font-size: 11px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    label { display: block; font-size: 11px; color: #666; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
 
-    textarea {
-      width: 100%;
-      background: #0c0c0c;
-      border: 1px solid #222;
-      border-radius: 8px;
-      color: #ddd;
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 12px;
-      line-height: 1.7;
-      padding: 12px 14px;
-      outline: none;
-      resize: vertical;
-      white-space: pre;
+    /* Input grid: a real, aligned table instead of raw pasted text */
+    .grid-wrap {
+      background: #0c0c0c; border: 1px solid #222; border-radius: 8px;
       overflow-x: auto;
-      transition: border-color 0.2s;
     }
-    textarea:focus { border-color: #ff6b1a; }
+    table.input-grid { border-collapse: collapse; width: 100%; min-width: 780px; }
+    .input-grid thead th {
+      text-align: left; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.04em;
+      padding: 10px 8px; border-bottom: 1px solid #222; white-space: nowrap; font-weight: 700;
+    }
+    .input-grid thead th.opt { color: #4a4a4a; }
+    .input-grid thead th .req-mark { color: #ff6b1a; }
+    .input-grid tbody td { padding: 2px; border-bottom: 1px solid #161616; }
+    .input-grid tbody tr:last-child td { border-bottom: none; }
+    .input-grid input {
+      width: 100%; min-width: 78px; background: transparent; border: 1px solid transparent; border-radius: 4px;
+      color: #ddd; font-size: 12.5px; padding: 8px; outline: none; font-variant-numeric: tabular-nums;
+    }
+    .input-grid input.name-cell { min-width: 150px; font-weight: 600; color: #fff; font-variant-numeric: normal; }
+    .input-grid input:focus { border-color: #ff6b1a; background: #111; }
+    .input-grid input::placeholder { color: #3a3a3a; }
+    .row-del {
+      background: none; border: none; color: #3a3a3a; font-size: 16px; cursor: pointer; padding: 0 10px; line-height: 1;
+    }
+    .row-del:hover { color: #ef4444; }
+    .grid-actions { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px 8px 4px; }
+    .add-row-btn {
+      background: none; border: 1px dashed #333; color: #888; font-size: 12px; font-weight: 600;
+      padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    }
+    .add-row-btn:hover { border-color: #ff6b1a; color: #ff6b1a; }
+    .paste-hint { color: #555; font-size: 11px; padding-right: 4px; }
 
     .format-hint { color: #555; font-size: 12px; line-height: 1.7; margin-top: 8px; }
     .format-hint code { color: #888; background: #111; padding: 1px 5px; border-radius: 3px; }
@@ -99,6 +117,12 @@
       50%      { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
     }
 
+    .synthesis {
+      flex-basis: 100%; margin-top: 6px; padding-top: 14px; border-top: 1px solid #1a1a1a;
+      font-size: 13.5px; color: #bbb; line-height: 1.6;
+    }
+    .synthesis strong { color: #fff; }
+
     /* Leak bar chart */
     .leak-card {
       background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 12px;
@@ -127,6 +151,14 @@
     .bar-row .bv { font-size: 12px; color: #ccc; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
     /* Client cards */
+    .cards-header {
+      display: grid; grid-template-columns: 1fr 56px 120px 55px; gap: 10px;
+      padding: 0 14px; margin-bottom: 6px;
+    }
+    .cards-header span { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cards-header span.mid { text-align: center; }
+    .cards-header span.right { text-align: right; }
+
     .cards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1.6rem; }
     .card {
       background: #0c0c0c; border: 1px solid #1a1a1a; border-left: 3px solid #333; border-radius: 8px;
@@ -139,9 +171,13 @@
     .card.green { border-left-color: #22c55e; }
     @keyframes fadeSlideUp { to { opacity: 1; transform: translateY(0); } }
 
-    .card-row { display: grid; grid-template-columns: 1fr 130px 60px; align-items: center; gap: 14px; }
-    .card-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .card-row { display: grid; grid-template-columns: 1fr 56px 120px 55px; align-items: center; gap: 10px; }
     .card-name { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .card-pct { font-weight: 800; font-size: 13px; text-align: center; font-variant-numeric: tabular-nums; }
+    .card-pct.high { color: #ef4444; }
+    .card-pct.medium { color: #eab308; }
+    .card-pct.green { color: #22c55e; }
 
     .delta-track { position: relative; height: 10px; background: #161616; border-radius: 5px; margin: 5px 6px; }
     .delta-track::before {
@@ -166,8 +202,8 @@
       cursor: pointer; color: #666; font-size: 11.5px; list-style: none;
       display: inline-flex; align-items: center; gap: 4px; user-select: none;
     }
-    .card summary::before { content: '⌄'; display: inline-block; transition: transform 0.15s; }
-    .card details[open] summary::before { transform: rotate(-180deg); }
+    .card summary::before { content: 'Details ⌄'; display: inline-block; transition: transform 0.15s; }
+    .card details[open] summary::before { transform: rotate(-180deg); content: 'Details ⌄'; }
     .card summary:hover { color: #999; }
     .card-body {
       white-space: pre-line; color: #aaa; font-size: 12.5px; line-height: 1.7;
@@ -175,11 +211,7 @@
       display: flex; justify-content: space-between; gap: 12px; align-items: flex-end;
     }
 
-    .legend-note {
-      color: #555; font-size: 11px; margin-bottom: 10px;
-      display: flex; align-items: center; gap: 5px;
-    }
-    .legend-note .tick { color: #444; }
+    .legend-note { color: #555; font-size: 11px; margin-bottom: 10px; }
     .copy-btn {
       background: none; border: 1px solid #333; color: #888; font-size: 11px; font-weight: 600;
       padding: 4px 10px; border-radius: 5px; cursor: pointer; letter-spacing: normal; flex-shrink: 0;
@@ -195,10 +227,10 @@
     .cta:hover { opacity: 0.9; }
     .cta-sub { text-align: center; color: #555; font-size: 11.5px; margin-top: 10px; }
 
-    footer { margin-top: 3rem; color: #444; font-size: 11px; }
+    footer { margin-top: 3rem; color: #444; font-size: 11px; line-height: 1.8; }
 
     @media (max-width: 480px) {
-      .card-row { grid-template-columns: 1fr 90px 46px; gap: 8px; }
+      .card-row, .cards-header { grid-template-columns: 1fr 40px 90px 44px; gap: 6px; }
       .bar-row { grid-template-columns: 78px 1fr 70px; }
       .summary { flex-direction: column; text-align: center; }
       .legend { width: 100%; }
@@ -209,19 +241,40 @@
 <div class="wrap">
 
   <h1>The Reporting Leak Audit</h1>
-  <p class="sub">Paste your clients. See who needs you today.</p>
+  <p class="sub">Fill in your clients. See who needs you today.</p>
+  <p class="byline">By Autonix Lab. <a href="https://github.com/unaiza-autonixlab/reporting-leak-calculator" target="_blank">View source</a></p>
 
-  <label>Client roster (sample data loaded, edit or replace it)</label>
-  <textarea id="input" rows="11"></textarea>
+  <label>Client roster</label>
+  <div class="grid-wrap">
+    <table class="input-grid">
+      <thead>
+        <tr>
+          <th>Client <span class="req-mark">*</span></th>
+          <th>Spend <span class="req-mark">*</span></th>
+          <th>Revenue this period <span class="req-mark">*</span></th>
+          <th>Revenue last period <span class="req-mark">*</span></th>
+          <th class="opt">Churn % this</th>
+          <th class="opt">Avg churn % 3mo</th>
+          <th class="opt">LTV this month</th>
+          <th class="opt">Avg LTV 3mo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="grid-body"></tbody>
+    </table>
+    <div class="grid-actions">
+      <button class="add-row-btn" onclick="addRow()">+ Add client</button>
+      <span class="paste-hint">Tip: copy cells from Google Sheets or Excel and paste into any box, it fills the grid.</span>
+    </div>
+  </div>
   <p class="format-hint">
-    One row per client. Required: <code>Client, Spend, Revenue This Period, Revenue Last Period</code>.
-    Optional, for subscription clients: <code>Churn % This, Avg Churn % 3mo, LTV This Month, Avg LTV 3mo</code>.
+    <span class="req-mark" style="color:#ff6b1a">*</span> required. The four right-hand columns are only for subscription clients, leave them blank otherwise.
   </p>
 
   <div class="btn-row">
     <button onclick="runAnalysis(true)">Analyze My Clients</button>
     <button class="link-btn" onclick="loadSample()">Reload sample</button>
-    <button class="link-btn" onclick="clearInput()">Clear</button>
+    <button class="link-btn" onclick="clearGrid()">Clear</button>
   </div>
 
   <div class="divider"></div>
@@ -246,6 +299,7 @@
         <div class="legend-row"><span class="dot medium"></span> Worth watching <span class="n" id="cnt-medium">0</span></div>
         <div class="legend-row"><span class="dot green"></span> On track <span class="n" id="cnt-green">0</span></div>
       </div>
+      <p class="synthesis" id="synthesis"></p>
     </div>
 
     <div class="leak-card">
@@ -260,14 +314,20 @@
       <div class="bars" id="bars"></div>
     </div>
 
-    <p class="legend-note"><span class="tick">Bar = revenue vs last period, left down, right up.</span> <span class="tick">Colour = worst flag found, hover a bar for the numbers.</span></p>
+    <p class="legend-note">Colour shows the most urgent flag found for that client, which is not always revenue.</p>
+    <div class="cards-header">
+      <span>Client</span><span class="mid">Change</span><span class="mid">Revenue vs last period</span><span class="right">ROAS</span>
+    </div>
     <div class="cards" id="cards"></div>
 
     <a class="cta" id="cta" href="https://calendly.com/unaiza-autonixlab/discovery-call" target="_blank">See This Running Automatically, Every Week</a>
     <p class="cta-sub">This runs once, on demand. The paid version runs itself, for every client.</p>
   </div>
 
-  <footer>Runs entirely in your browser. Only anonymous counts are ever logged, never client names or numbers.</footer>
+  <footer>
+    Runs entirely in your browser. Only anonymous counts are ever logged, never client names or numbers.<br>
+    Built by Unaiza Masood, founder of Autonix Lab. These are the same thresholds running live for a real client's reporting pipeline, not invented for this demo.
+  </footer>
 </div>
 
 <script>
@@ -277,6 +337,7 @@
 })();
 
 const COLS = ['name','spend','thisRev','lastRev','churnThis','churnAvg','ltvThis','ltvAvg'];
+const PLACEHOLDERS = ['Client name', '0', '0', '0', '', '', '', ''];
 
 const SAMPLE = [
   { name: 'Lumen Skincare',          spend: 18000, thisRev: 42000, lastRev: 61000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
@@ -291,35 +352,105 @@ const SAMPLE = [
   { name: 'Harbor & Oak Home Goods', spend: 22000, thisRev: 55000, lastRev: 53000, churnThis: '',   churnAvg: '',  ltvThis: '',  ltvAvg: ''  },
 ];
 
-function toTSV(rows){
-  const header = 'Client\tSpend\tRevenue This Period\tRevenue Last Period\tChurn % This\tAvg Churn % 3mo\tLTV This Month\tAvg LTV 3mo';
-  const lines = rows.map(r => COLS.map(c => r[c]).join('\t'));
-  return [header, ...lines].join('\n');
+// grid is the single source of truth for the input table: an array of rows,
+// each row an array of 8 strings in COLS order.
+let grid = [];
+
+function sampleToGrid(){
+  return SAMPLE.map(r => COLS.map(c => String(r[c])));
 }
 
-function loadSample(){ document.getElementById('input').value = toTSV(SAMPLE); }
-function clearInput(){
-  document.getElementById('input').value = '';
+function blankRow(){ return new Array(COLS.length).fill(''); }
+
+function escapeHtml(s){
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderGrid(){
+  const tbody = document.getElementById('grid-body');
+  tbody.innerHTML = grid.map((row, ri) => `
+    <tr>
+      ${row.map((val, ci) => `<td><input
+        class="${ci === 0 ? 'name-cell' : ''}"
+        type="${ci === 0 || ci >= 4 ? 'text' : 'number'}"
+        data-r="${ri}" data-c="${ci}"
+        placeholder="${PLACEHOLDERS[ci]}"
+        value="${escapeHtml(val)}"></td>`).join('')}
+      <td><button class="row-del" data-r="${ri}" title="Remove client">&times;</button></td>
+    </tr>
+  `).join('');
+}
+
+function addRow(){
+  grid.push(blankRow());
+  renderGrid();
+  const cells = document.querySelectorAll(`#grid-body input[data-r="${grid.length - 1}"][data-c="0"]`);
+  if (cells[0]) cells[0].focus();
+}
+
+function loadSample(){ grid = sampleToGrid(); renderGrid(); }
+function clearGrid(){
+  grid = [blankRow()];
+  renderGrid();
   document.getElementById('results').classList.remove('show');
 }
 
+// Delegated listeners: input, paste, and row delete all happen on elements
+// that get replaced every render, so bind once on the stable tbody parent.
+// #grid-body already exists in the DOM here since this script runs at the
+// bottom of body, so no need to wait for DOMContentLoaded.
+(function(){
+  const tbody = document.getElementById('grid-body');
+
+  tbody.addEventListener('input', (e) => {
+    if (!e.target.matches('input')) return;
+    const r = +e.target.dataset.r, c = +e.target.dataset.c;
+    grid[r][c] = e.target.value;
+  });
+
+  tbody.addEventListener('click', (e) => {
+    if (!e.target.matches('.row-del')) return;
+    const r = +e.target.dataset.r;
+    grid.splice(r, 1);
+    if (grid.length === 0) grid.push(blankRow());
+    renderGrid();
+  });
+
+  tbody.addEventListener('paste', (e) => {
+    if (!e.target.matches('input')) return;
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (!text.includes('\t') && !text.includes('\n')) return; // single value, let default paste happen
+    e.preventDefault();
+    const startR = +e.target.dataset.r, startC = +e.target.dataset.c;
+    const rows = text.split(/\r?\n/).filter((line, idx, arr) => !(idx === arr.length - 1 && line === ''));
+    rows.forEach((line, ri) => {
+      const cells = line.split('\t');
+      const r = startR + ri;
+      while (grid.length <= r) grid.push(blankRow());
+      cells.forEach((val, ci) => {
+        const c = startC + ci;
+        if (c < COLS.length) grid[r][c] = val.trim();
+      });
+    });
+    renderGrid();
+  });
+
+  loadSample();
+})();
+
 function fmt(n){ return '$' + Math.round(n).toLocaleString(); }
 
-function parseInput(text){
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length < 2) return [];
-  return lines.slice(1).map(line => {
-    const cells = line.includes('\t') ? line.split('\t') : line.split(',');
-    const get = i => (cells[i] !== undefined ? cells[i].trim() : '');
-    return {
-      name: get(0) || 'Unnamed client',
-      spend: parseFloat(get(1)) || 0,
-      thisRev: parseFloat(get(2)) || 0,
-      lastRev: parseFloat(get(3)) || 0,
-      churnThis: get(4), churnAvg: get(5),
-      ltvThis: get(6), ltvAvg: get(7),
-    };
-  });
+function gridToRows(){
+  return grid
+    .filter(r => r[0].trim() !== '' || r[1] !== '' || r[2] !== '' || r[3] !== '')
+    .map(r => ({
+      name: r[0].trim() || 'Unnamed client',
+      spend: parseFloat(r[1]) || 0,
+      thisRev: parseFloat(r[2]) || 0,
+      lastRev: parseFloat(r[3]) || 0,
+      churnThis: r[4].trim(), churnAvg: r[5].trim(),
+      ltvThis: r[6].trim(), ltvAvg: r[7].trim(),
+    }));
 }
 
 function computeFlags(row){
@@ -362,9 +493,14 @@ function narrativeFor(row, flags, severity, dropPct){
   const lines = [`${row.name}: ${statusLabel}`];
   if (dropPct !== null) {
     const dir = dropPct >= 0 ? 'down' : 'up';
-    lines.push(`Revenue: ${fmt(row.thisRev)} this period vs ${fmt(row.lastRev)} last period (${dir} ${Math.abs(dropPct).toFixed(0)}%).`);
+    const deltaDollars = Math.abs(row.lastRev - row.thisRev);
+    lines.push(`Revenue: ${fmt(row.thisRev)} this period vs ${fmt(row.lastRev)} last period (${dir} ${Math.abs(dropPct).toFixed(0)}%, ${fmt(deltaDollars)}).`);
   }
-  if (row.spend > 0) lines.push(`Spend: ${fmt(row.spend)}. ROAS: ${(row.thisRev / row.spend).toFixed(2)}x.`);
+  if (row.spend > 0) {
+    const roasThis = row.thisRev / row.spend;
+    const roasLast = row.lastRev / row.spend;
+    lines.push(`Spend: ${fmt(row.spend)}. ROAS: ${roasThis.toFixed(2)}x, was ${roasLast.toFixed(2)}x.`);
+  }
   if (row.churnThis !== '' && row.churnAvg !== '') lines.push(`Churn: ${row.churnThis}% this period vs ${row.churnAvg}% average.`);
   if (row.ltvThis !== '' && row.ltvAvg !== '') lines.push(`LTV: ${fmt(row.ltvThis)} this month vs ${fmt(row.ltvAvg)} average.`);
   lines.push(`Next step: ${nextStepFor(flags)}`);
@@ -387,12 +523,17 @@ function animateNumber(el, to, duration, formatter){
 }
 
 function runAnalysis(shouldLog){
-  const text = document.getElementById('input').value;
-  const rows = parseInput(text);
-  if (rows.length === 0) { alert('Paste at least one client row below the header.'); return; }
+  const rows = gridToRows();
+  if (rows.length === 0) { alert('Add at least one client with a name, spend, and revenue.'); return; }
   lastRows = rows.map(row => ({ row, ...computeFlags(row) }));
+
   const order = { high: 0, medium: 1, green: 2 };
-  lastRows.sort((a, b) => order[a.severity] - order[b.severity]);
+  lastRows.sort((a, b) => {
+    if (order[a.severity] !== order[b.severity]) return order[a.severity] - order[b.severity];
+    const am = a.dropPct === null ? -Infinity : a.dropPct;
+    const bm = b.dropPct === null ? -Infinity : b.dropPct;
+    return bm - am; // within the same severity, biggest revenue decline floats to the top
+  });
 
   render();
   document.getElementById('results').classList.add('show');
@@ -418,6 +559,37 @@ function renderRing(counts, total){
     offset += len;
   });
   animateNumber(document.getElementById('ring-total'), total, 700);
+}
+
+function renderSynthesis(n){
+  const el = document.getElementById('synthesis');
+  const highRows = lastRows.filter(r => r.severity === 'high');
+  const mediumRows = lastRows.filter(r => r.severity === 'medium');
+
+  if (highRows.length === 0 && mediumRows.length === 0) {
+    el.innerHTML = `All <strong>${n}</strong> clients are within normal range this period.`;
+    return;
+  }
+  if (highRows.length === 0) {
+    el.innerHTML = `Nothing urgent today, but <strong>${mediumRows.length}</strong> client${mediumRows.length === 1 ? '' : 's'} worth watching before next period.`;
+    return;
+  }
+
+  const byType = { revenue: [], churn: [], ltv: [] };
+  highRows.forEach(r => {
+    const primary = r.flags[0] ? r.flags[0].type : 'revenue';
+    (byType[primary] || byType.revenue).push(r);
+  });
+
+  const parts = [];
+  if (byType.revenue.length) {
+    const dollarLoss = byType.revenue.reduce((s, r) => s + Math.max(0, r.row.lastRev - r.row.thisRev), 0);
+    parts.push(`${byType.revenue.length} from revenue drops (${fmt(dollarLoss)} combined)`);
+  }
+  if (byType.churn.length) parts.push(`${byType.churn.length} from churn spikes`);
+  if (byType.ltv.length) parts.push(`${byType.ltv.length} from LTV drops`);
+
+  el.innerHTML = `<strong>${highRows.length} of ${n}</strong> clients need attention today: ${parts.join(', ')}.`;
 }
 
 function renderLeak(){
@@ -462,6 +634,7 @@ function render(){
   document.getElementById('cnt-medium').textContent = counts.medium;
   document.getElementById('cnt-green').textContent = counts.green;
   renderRing(counts, n);
+  renderSynthesis(n);
   renderLeak();
 
   const cardsEl = document.getElementById('cards');
@@ -487,6 +660,7 @@ function render(){
     // the bar alone looks unremarkable next to a red or yellow card. Name the real
     // driver in the summary line so the colour is never unexplained.
     const nonRevenueFlags = flags.filter(f => f.type !== 'revenue');
+    const pctLabel = dropPct !== null ? (dropPct >= 0 ? '-' : '+') + Math.abs(dropPct).toFixed(0) + '%' : 'N/A';
     const baseSummary = dropPct !== null ? (dropPct >= 0 ? 'down ' : 'up ') + Math.abs(dropPct).toFixed(0) + '%' : 'no revenue data';
     const summaryText = nonRevenueFlags.length
       ? `${baseSummary}, ${nonRevenueFlags.map(f => f.text.toLowerCase()).join(', ')}`
@@ -497,7 +671,8 @@ function render(){
     card.style.setProperty('--i', i);
     card.innerHTML = `
       <div class="card-row">
-        <div class="card-name-wrap"><span class="card-name">${row.name}</span></div>
+        <span class="card-name">${row.name}</span>
+        <span class="card-pct ${severity}">${pctLabel}</span>
         <div class="delta-track" title="${tooltip}">
           <div class="delta-fill ${severity}" data-left="${left}" data-w="${magPct}"></div>
           <div class="delta-dot ${severity}" data-left="${dotPos}"></div>
@@ -505,7 +680,7 @@ function render(){
         <div class="card-roas">${roas}</div>
       </div>
       <details>
-        <summary>${summaryText}</summary>
+        <summary>${nonRevenueFlags.length ? nonRevenueFlags.map(f => f.text).join(', ') + ', see full update' : 'See full update'}</summary>
         <div class="card-body">
           <span>${text}</span>
           <button class="copy-btn">Copy update</button>
@@ -550,8 +725,6 @@ function logSubmission(counts, numClients){
     ? `https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit&utm_content=${encodeURIComponent(agency)}`
     : 'https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit';
 }
-
-loadSample();
 </script>
 </body>
 </html>

@@ -42,16 +42,8 @@
     }
     textarea:focus { border-color: #ff6b1a; }
 
-    details.hint { margin-top: 10px; }
-    details.hint summary {
-      cursor: pointer; color: #666; font-size: 12px; list-style: none;
-      display: inline-flex; align-items: center; gap: 5px; user-select: none;
-    }
-    details.hint summary::before { content: '⌄'; display: inline-block; transition: transform 0.15s; font-size: 13px; }
-    details.hint[open] summary::before { transform: rotate(-180deg); }
-    details.hint summary:hover { color: #999; }
-    details.hint .body { color: #555; font-size: 12px; line-height: 1.7; margin-top: 8px; padding-left: 2px; }
-    details.hint code { color: #888; background: #111; padding: 1px 5px; border-radius: 3px; }
+    .format-hint { color: #555; font-size: 12px; line-height: 1.7; margin-top: 8px; }
+    .format-hint code { color: #888; background: #111; padding: 1px 5px; border-radius: 3px; }
 
     .btn-row { display: flex; align-items: center; gap: 1.2rem; margin-top: 1rem; flex-wrap: wrap; }
 
@@ -151,14 +143,22 @@
     .card-name-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .card-name { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .delta-track { position: relative; height: 8px; background: #161616; border-radius: 4px; }
+    .delta-track { position: relative; height: 10px; background: #161616; border-radius: 5px; margin: 5px 6px; }
     .delta-track::before {
-      content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: #333;
+      content: ''; position: absolute; left: 50%; top: -4px; bottom: -4px; width: 1px; background: #333;
     }
-    .delta-fill { position: absolute; top: 0; bottom: 0; width: 0%; border-radius: 4px; transition: width 0.9s cubic-bezier(.2,.8,.2,1), left 0.9s cubic-bezier(.2,.8,.2,1); }
+    .delta-fill { position: absolute; top: 3px; bottom: 3px; width: 0%; border-radius: 5px; opacity: 0.45; transition: width 0.9s cubic-bezier(.2,.8,.2,1), left 0.9s cubic-bezier(.2,.8,.2,1); }
     .delta-fill.high { background: #ef4444; }
     .delta-fill.medium { background: #eab308; }
     .delta-fill.green { background: #22c55e; }
+    .delta-dot {
+      position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+      transform: translate(-50%, -50%); border: 2px solid #000;
+      transition: left 0.9s cubic-bezier(.2,.8,.2,1);
+    }
+    .delta-dot.high { background: #ef4444; }
+    .delta-dot.medium { background: #eab308; }
+    .delta-dot.green { background: #22c55e; }
     .card-roas { font-size: 12px; color: #888; text-align: right; font-variant-numeric: tabular-nums; }
 
     .card details { margin-top: 6px; }
@@ -174,6 +174,12 @@
       margin-top: 8px; padding-top: 8px; border-top: 1px solid #161616;
       display: flex; justify-content: space-between; gap: 12px; align-items: flex-end;
     }
+
+    .legend-note {
+      color: #555; font-size: 11px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .legend-note .tick { color: #444; }
     .copy-btn {
       background: none; border: 1px solid #333; color: #888; font-size: 11px; font-weight: 600;
       padding: 4px 10px; border-radius: 5px; cursor: pointer; letter-spacing: normal; flex-shrink: 0;
@@ -205,16 +211,12 @@
   <h1>The Reporting Leak Audit</h1>
   <p class="sub">Paste your clients. See who needs you today.</p>
 
-  <label>Client roster</label>
+  <label>Client roster (sample data loaded, edit or replace it)</label>
   <textarea id="input" rows="11"></textarea>
-
-  <details class="hint">
-    <summary>Column format</summary>
-    <div class="body">
-      Required: <code>Client, Spend, Revenue This Period, Revenue Last Period</code><br>
-      Optional (subscription clients): <code>Churn % This, Avg Churn % 3mo, LTV This Month, Avg LTV 3mo</code>, leave blank if unused.
-    </div>
-  </details>
+  <p class="format-hint">
+    One row per client. Required: <code>Client, Spend, Revenue This Period, Revenue Last Period</code>.
+    Optional, for subscription clients: <code>Churn % This, Avg Churn % 3mo, LTV This Month, Avg LTV 3mo</code>.
+  </p>
 
   <div class="btn-row">
     <button onclick="runAnalysis(true)">Analyze My Clients</button>
@@ -258,6 +260,7 @@
       <div class="bars" id="bars"></div>
     </div>
 
+    <p class="legend-note"><span class="tick">Bar = revenue vs last period, left down, right up.</span> <span class="tick">Colour = worst flag found, hover a bar for the numbers.</span></p>
     <div class="cards" id="cards"></div>
 
     <a class="cta" id="cta" href="https://calendly.com/unaiza-autonixlab/discovery-call" target="_blank">See This Running Automatically, Every Week</a>
@@ -472,6 +475,22 @@ function render(){
     const magPct = Math.abs(clamped);
     // Decline bars grow leftward from center, ending at 50%. Growth bars grow rightward, starting at 50%.
     const left = isGrowth ? 50 : (50 - magPct);
+    // The dot marks the actual value at the bar's outer edge, so even a 1-2% move stays
+    // visible as a fixed-size marker when the fill itself would be a near-invisible sliver.
+    const dotPos = isGrowth ? left + magPct : left;
+
+    const tooltip = dropPct !== null
+      ? `Revenue: ${fmt(row.thisRev)} this period vs ${fmt(row.lastRev)} last period (${dropPct >= 0 ? 'down' : 'up'} ${Math.abs(dropPct).toFixed(0)}%)`
+      : 'No prior-period revenue to compare';
+
+    // The bar only encodes revenue, so when the flag driver is churn or LTV instead,
+    // the bar alone looks unremarkable next to a red or yellow card. Name the real
+    // driver in the summary line so the colour is never unexplained.
+    const nonRevenueFlags = flags.filter(f => f.type !== 'revenue');
+    const baseSummary = dropPct !== null ? (dropPct >= 0 ? 'down ' : 'up ') + Math.abs(dropPct).toFixed(0) + '%' : 'no revenue data';
+    const summaryText = nonRevenueFlags.length
+      ? `${baseSummary}, ${nonRevenueFlags.map(f => f.text.toLowerCase()).join(', ')}`
+      : baseSummary;
 
     const card = document.createElement('div');
     card.className = `card ${severity}`;
@@ -479,11 +498,14 @@ function render(){
     card.innerHTML = `
       <div class="card-row">
         <div class="card-name-wrap"><span class="card-name">${row.name}</span></div>
-        <div class="delta-track"><div class="delta-fill ${severity}" data-left="${left}" data-w="${magPct}"></div></div>
+        <div class="delta-track" title="${tooltip}">
+          <div class="delta-fill ${severity}" data-left="${left}" data-w="${magPct}"></div>
+          <div class="delta-dot ${severity}" data-left="${dotPos}"></div>
+        </div>
         <div class="card-roas">${roas}</div>
       </div>
       <details>
-        <summary>${dropPct !== null ? (dropPct >= 0 ? 'down ' : 'up ') + Math.abs(dropPct).toFixed(0) + '%' : 'details'}</summary>
+        <summary>${summaryText}</summary>
         <div class="card-body">
           <span>${text}</span>
           <button class="copy-btn">Copy update</button>
@@ -493,9 +515,11 @@ function render(){
     cardsEl.appendChild(card);
 
     const fill = card.querySelector('.delta-fill');
+    const dot = card.querySelector('.delta-dot');
     requestAnimationFrame(() => {
       fill.style.left = fill.dataset.left + '%';
       fill.style.width = fill.dataset.w + '%';
+      dot.style.left = dot.dataset.left + '%';
     });
 
     card.querySelector('.copy-btn').addEventListener('click', (e) => {
@@ -528,7 +552,6 @@ function logSubmission(counts, numClients){
 }
 
 loadSample();
-runAnalysis(false);
 </script>
 </body>
 </html>

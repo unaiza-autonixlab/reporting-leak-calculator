@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Reporting Leak Audit</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    .wrap { max-width: 720px; margin: 0 auto; }
+
+    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
+    .sub { color: #888; font-size: 14px; margin-bottom: 2rem; max-width: 560px; }
+
+    label { display: block; font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    textarea {
+      width: 100%;
+      background: #0c0c0c;
+      border: 1px solid #222;
+      border-radius: 6px;
+      color: #ddd;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      padding: 12px 14px;
+      outline: none;
+      resize: vertical;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    textarea:focus { border-color: #ff6b1a; }
+
+    .hint { color: #555; font-size: 12px; margin-top: 8px; line-height: 1.6; }
+    .hint code { color: #888; background: #111; padding: 1px 5px; border-radius: 3px; }
+
+    .btn-row { display: flex; align-items: center; gap: 1.2rem; margin-top: 1rem; flex-wrap: wrap; }
+
+    button {
+      padding: 12px 22px;
+      background: #ff6b1a;
+      border: 1px solid #ff6b1a;
+      color: #000;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+    button:hover { opacity: 0.9; }
+
+    .link-btn {
+      background: none; border: none; color: #666; font-weight: 500;
+      font-size: 13px; text-decoration: underline; padding: 0; cursor: pointer; letter-spacing: normal;
+    }
+    .link-btn:hover { color: #999; }
+
+    .divider { height: 1px; background: #1a1a1a; margin: 2.2rem 0; }
+
+    #results { display: none; }
+    #results.show { display: block; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.8rem; }
+    .stat { background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 8px; padding: 14px; text-align: center; }
+    .stat .num { font-size: 1.6rem; font-weight: 800; }
+    .stat .lbl { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+    .stat.red .num { color: #ef4444; }
+    .stat.yellow .num { color: #eab308; }
+    .stat.green .num { color: #22c55e; }
+
+    .leak-banner {
+      background: #0c0c0c; border: 1px solid #ff6b1a; border-radius: 8px;
+      padding: 18px 20px; margin-bottom: 1.8rem;
+    }
+    .leak-banner .big { font-size: 1.5rem; font-weight: 800; color: #ff6b1a; }
+    .leak-banner .desc { color: #888; font-size: 13px; margin-top: 4px; }
+    .leak-inputs { display: flex; gap: 1.5rem; margin-top: 12px; flex-wrap: wrap; }
+    .leak-inputs .fld { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+    .leak-inputs input {
+      width: 60px; background: #111; border: 1px solid #222; border-radius: 4px;
+      color: #fff; font-size: 13px; padding: 5px 8px; outline: none;
+    }
+    .leak-inputs input:focus { border-color: #ff6b1a; }
+
+    .compare { margin-top: 14px; border-top: 1px solid #1a1a1a; padding-top: 12px; }
+    .compare-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 4px 0; color: #999; }
+    .compare-row span:last-child { color: #ccc; font-weight: 600; }
+    .compare-row.ours span:last-child { color: #ff6b1a; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 1.8rem; }
+    th { text-align: left; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding: 8px 10px; border-bottom: 1px solid #222; }
+    td { padding: 10px; border-bottom: 1px solid #161616; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+    .pill.high { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .pill.medium { background: rgba(234,179,8,0.15); color: #eab308; }
+    .pill.green { background: rgba(34,197,94,0.15); color: #22c55e; }
+
+    .cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem; }
+    .card { background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 8px; padding: 16px 18px; }
+    .card.high { border-left: 3px solid #ef4444; }
+    .card.medium { border-left: 3px solid #eab308; }
+    .card.green { border-left: 3px solid #22c55e; }
+    .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .card-name { font-weight: 700; font-size: 14px; }
+    .card-body { white-space: pre-line; color: #aaa; font-size: 13px; line-height: 1.7; }
+    .copy-btn {
+      background: none; border: 1px solid #333; color: #888; font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 5px; cursor: pointer; letter-spacing: normal;
+    }
+    .copy-btn:hover { border-color: #ff6b1a; color: #ff6b1a; }
+    .copy-btn.copied { border-color: #22c55e; color: #22c55e; }
+
+    .cta {
+      display: block; text-align: center; margin-top: 0.5rem;
+      padding: 14px; background: #ff6b1a; color: #000; font-weight: 800; font-size: 14px;
+      border-radius: 6px; text-decoration: none; letter-spacing: 0.02em;
+    }
+    .cta:hover { opacity: 0.9; }
+    .cta-sub { text-align: center; color: #555; font-size: 12px; margin-top: 10px; }
+
+    footer { margin-top: 3rem; color: #444; font-size: 11.5px; line-height: 1.7; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Reporting Leak Audit</h1>
+  <p class="sub">Paste your client roster. See which accounts need attention today, get a client-ready update written for you, and find out what doing this by hand is actually costing you.</p>
+
+  <label>Client roster</label>
+  <textarea id="input" rows="12"></textarea>
+  <p class="hint">
+    First row is a header — keep it or overwrite it. Required columns: <code>Client, Spend, Revenue This Period, Revenue Last Period</code>.
+    Optional (for subscription clients): <code>Churn % This, Avg Churn % (3mo), LTV This Month, Avg LTV (3mo)</code> — leave blank if you don't track them.
+  </p>
+
+  <div class="btn-row">
+    <button onclick="runAnalysis(true)">Analyze My Clients</button>
+    <button class="link-btn" onclick="loadSample()">Reload sample data</button>
+    <button class="link-btn" onclick="clearInput()">Clear</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div id="results">
+    <div class="stats">
+      <div class="stat" id="stat-total"><div class="num">0</div><div class="lbl">Clients analyzed</div></div>
+      <div class="stat red" id="stat-high"><div class="num">0</div><div class="lbl">Need attention today</div></div>
+      <div class="stat yellow" id="stat-medium"><div class="num">0</div><div class="lbl">Worth watching</div></div>
+    </div>
+
+    <div class="leak-banner">
+      <div class="big" id="leak-amount">$0/month</div>
+      <div class="desc">is what this analysis would cost you to do by hand every month.</div>
+      <div class="leak-inputs">
+        <div class="fld">Assuming <input type="number" id="hrs" value="15" min="1" onchange="recomputeLeak()"> hrs/client</div>
+        <div class="fld">at $<input type="number" id="rate" value="75" min="1" onchange="recomputeLeak()"> /hr</div>
+      </div>
+      <div class="compare">
+        <div class="compare-row"><span>AgencyAnalytics ($20/client/mo)</span><span id="cmp-aa"></span></div>
+        <div class="compare-row"><span>Whatagraph</span><span>$215–$760/mo flat</span></div>
+        <div class="compare-row"><span>DashThis</span><span>$44–$429/mo flat</span></div>
+        <div class="compare-row ours"><span>Done-for-you setup + monitoring</span><span>$3,500 + $750/mo flat</span></div>
+      </div>
+    </div>
+
+    <table id="triage-table">
+      <thead>
+        <tr>
+          <th>Client</th><th>Status</th><th class="num-cell">Revenue Δ</th>
+          <th class="num-cell">Spend</th><th class="num-cell">ROAS</th>
+        </tr>
+      </thead>
+      <tbody id="triage-body"></tbody>
+    </table>
+
+    <div class="cards" id="narrative-cards"></div>
+
+    <a class="cta" id="cta" href="https://calendly.com/unaiza-autonixlab/discovery-call" target="_blank">See This Running Automatically, Every Week, Across All Your Clients</a>
+    <p class="cta-sub">Free tool runs once, on numbers you paste in. The full version connects to your platforms and does this daily, for every client, with zero copy-pasting.</p>
+  </div>
+
+  <footer>
+    Everything above runs in your browser — the math never leaves your machine. Clicking "Analyze" or the CTA logs an anonymous summary (client count, flag counts, no client names or numbers) for our own product research.
+  </footer>
+</div>
+
+<script>
+(function(){
+  const p = new URLSearchParams(location.search).get('agency');
+  if (p) window._agency = decodeURIComponent(p);
+})();
+
+const COLS = ['name','spend','thisRev','lastRev','churnThis','churnAvg','ltvThis','ltvAvg'];
+
+const SAMPLE = [
+  { name: 'Lumen Skincare',          spend: 18000, thisRev: 42000, lastRev: 61000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Northfield Coffee Co.',   spend: 9000,  thisRev: 27000, lastRev: 29500, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Verve Supplements',       spend: 25000, thisRev: 58000, lastRev: 64000, churnThis: 14.2,   churnAvg: 8.1,   ltvThis: 210,   ltvAvg: 245   },
+  { name: 'Basecamp Apparel',        spend: 14000, thisRev: 39000, lastRev: 22000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'PawFuel Pet Co.',         spend: 12000, thisRev: 21000, lastRev: 30500, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Solstice Eyewear',        spend: 20000, thisRev: 46000, lastRev: 52000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Kindling Candle Co.',     spend: 6000,  thisRev: 15000, lastRev: 19000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Fenwick Fitness Gear',    spend: 30000, thisRev: 71000, lastRev: 90000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+  { name: 'Bloom Botanicals',        spend: 16000, thisRev: 38000, lastRev: 40000, churnThis: 9.5,    churnAvg: 9.0,   ltvThis: 180,   ltvAvg: 215   },
+  { name: 'Harbor & Oak Home Goods', spend: 22000, thisRev: 55000, lastRev: 53000, churnThis: '',     churnAvg: '',    ltvThis: '',    ltvAvg: ''    },
+];
+
+function toTSV(rows){
+  const header = 'Client\tSpend\tRevenue This Period\tRevenue Last Period\tChurn % This\tAvg Churn % (3mo)\tLTV This Month\tAvg LTV (3mo)';
+  const lines = rows.map(r => COLS.map(c => r[c]).join('\t'));
+  return [header, ...lines].join('\n');
+}
+
+function loadSample(){
+  document.getElementById('input').value = toTSV(SAMPLE);
+}
+function clearInput(){
+  document.getElementById('input').value = '';
+  document.getElementById('results').classList.remove('show');
+}
+
+function fmt(n){ return '$' + Math.round(n).toLocaleString(); }
+
+function parseInput(text){
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const dataLines = lines.slice(1); // skip header
+  return dataLines.map(line => {
+    const cells = line.includes('\t') ? line.split('\t') : line.split(',');
+    const get = i => (cells[i] !== undefined ? cells[i].trim() : '');
+    return {
+      name: get(0) || 'Unnamed client',
+      spend: parseFloat(get(1)) || 0,
+      thisRev: parseFloat(get(2)) || 0,
+      lastRev: parseFloat(get(3)) || 0,
+      churnThis: get(4), churnAvg: get(5),
+      ltvThis: get(6), ltvAvg: get(7),
+    };
+  });
+}
+
+function computeFlags(row){
+  const flags = [];
+  const dropPct = row.lastRev > 0 ? ((row.lastRev - row.thisRev) / row.lastRev * 100) : null;
+  if (dropPct !== null) {
+    if (dropPct >= 30) flags.push({ type: 'revenue', severity: 'high', text: `Revenue down ${dropPct.toFixed(0)}%` });
+    else if (dropPct >= 15) flags.push({ type: 'revenue', severity: 'medium', text: `Revenue down ${dropPct.toFixed(0)}%` });
+  }
+  if (row.churnThis !== '' && row.churnAvg !== '') {
+    const spike = parseFloat(row.churnThis) - parseFloat(row.churnAvg);
+    if (!isNaN(spike) && spike > 5) flags.push({ type: 'churn', severity: 'high', text: `Churn up ${spike.toFixed(1)}pp` });
+  }
+  if (row.ltvThis !== '' && row.ltvAvg !== '') {
+    const lt = parseFloat(row.ltvThis), la = parseFloat(row.ltvAvg);
+    if (!isNaN(lt) && !isNaN(la) && la > 0) {
+      const ltvDrop = (la - lt) / la * 100;
+      if (ltvDrop >= 15) flags.push({ type: 'ltv', severity: 'medium', text: `LTV down ${ltvDrop.toFixed(0)}%` });
+    }
+  }
+  const severity = flags.some(f => f.severity === 'high') ? 'high'
+                  : flags.some(f => f.severity === 'medium') ? 'medium' : 'green';
+  return { flags, severity, dropPct };
+}
+
+function nextStepFor(flags){
+  if (flags.some(f => f.type === 'churn' && f.severity === 'high'))
+    return 'Loop in retention/CRM. This usually traces back to a recent price change, a shipping delay, or a cohort quality issue, not the ad account.';
+  if (flags.some(f => f.type === 'revenue' && f.severity === 'high'))
+    return 'Pull the channel-level breakdown before the client asks. This is a same-week conversation, not a line in next month\'s report.';
+  if (flags.some(f => f.type === 'ltv'))
+    return 'Check whether this is a mix-shift toward one-time buyers before flagging subscriber value as actually declining.';
+  if (flags.some(f => f.type === 'revenue' && f.severity === 'medium'))
+    return 'Worth a mention in the next check-in. Watch next period before raising it as a problem.';
+  return 'Nothing here needs your attention this week.';
+}
+
+function narrativeFor(row, flags, severity, dropPct){
+  const statusLabel = severity === 'high' ? 'Needs attention today' : severity === 'medium' ? 'Worth watching' : 'On track';
+  const lines = [];
+  lines.push(`${row.name} — ${statusLabel}`);
+  if (dropPct !== null) {
+    const dir = dropPct >= 0 ? 'down' : 'up';
+    lines.push(`Revenue: ${fmt(row.thisRev)} this period vs ${fmt(row.lastRev)} last period (${dir} ${Math.abs(dropPct).toFixed(0)}%).`);
+  }
+  if (row.spend > 0) {
+    lines.push(`Spend: ${fmt(row.spend)}. ROAS: ${(row.thisRev / row.spend).toFixed(2)}x.`);
+  }
+  if (row.churnThis !== '' && row.churnAvg !== '') {
+    lines.push(`Churn: ${row.churnThis}% this period vs ${row.churnAvg}% average.`);
+  }
+  if (row.ltvThis !== '' && row.ltvAvg !== '') {
+    lines.push(`LTV: ${fmt(row.ltvThis)} this month vs ${fmt(row.ltvAvg)} average.`);
+  }
+  lines.push(`Next step: ${nextStepFor(flags)}`);
+  return lines.join('\n');
+}
+
+let lastRows = [];
+
+function runAnalysis(shouldLog){
+  const text = document.getElementById('input').value;
+  const rows = parseInput(text);
+  if (rows.length === 0) { alert('Paste at least one client row below the header.'); return; }
+  lastRows = rows.map(row => {
+    const { flags, severity, dropPct } = computeFlags(row);
+    return { row, flags, severity, dropPct };
+  });
+  // Sort: high first, then medium, then green
+  const order = { high: 0, medium: 1, green: 2 };
+  lastRows.sort((a, b) => order[a.severity] - order[b.severity]);
+
+  render();
+  document.getElementById('results').classList.add('show');
+
+  if (shouldLog) {
+    const counts = { high: 0, medium: 0, green: 0 };
+    lastRows.forEach(r => counts[r.severity]++);
+    logSubmission(counts, rows.length);
+  }
+
+  setTimeout(() => document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+function recomputeLeak(){
+  render(true);
+}
+
+function render(leakOnly){
+  const n = lastRows.length;
+  const counts = { high: 0, medium: 0, green: 0 };
+  lastRows.forEach(r => counts[r.severity]++);
+
+  const hrs = parseFloat(document.getElementById('hrs').value) || 0;
+  const rate = parseFloat(document.getElementById('rate').value) || 0;
+  const leakMonthly = n * hrs * rate;
+  document.getElementById('leak-amount').textContent = fmt(leakMonthly) + '/month';
+  document.getElementById('cmp-aa').textContent = fmt(n * 20) + '/mo';
+
+  if (leakOnly) return;
+
+  document.querySelector('#stat-total .num').textContent = n;
+  document.querySelector('#stat-high .num').textContent = counts.high;
+  document.querySelector('#stat-medium .num').textContent = counts.medium;
+
+  const tbody = document.getElementById('triage-body');
+  tbody.innerHTML = '';
+  lastRows.forEach(({ row, severity, dropPct }) => {
+    const tr = document.createElement('tr');
+    const pillLabel = severity === 'high' ? 'Needs attention' : severity === 'medium' ? 'Watch' : 'On track';
+    const dropStr = dropPct !== null ? `${dropPct >= 0 ? '-' : '+'}${Math.abs(dropPct).toFixed(0)}%` : '—';
+    const roas = row.spend > 0 ? (row.thisRev / row.spend).toFixed(2) + 'x' : '—';
+    tr.innerHTML = `
+      <td>${row.name}</td>
+      <td><span class="pill ${severity}">${pillLabel}</span></td>
+      <td class="num-cell">${dropStr}</td>
+      <td class="num-cell">${fmt(row.spend)}</td>
+      <td class="num-cell">${roas}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const cardsEl = document.getElementById('narrative-cards');
+  cardsEl.innerHTML = '';
+  lastRows.forEach(({ row, flags, severity, dropPct }, i) => {
+    const text = narrativeFor(row, flags, severity, dropPct);
+    const card = document.createElement('div');
+    card.className = `card ${severity}`;
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="card-name">${row.name}</span>
+        <button class="copy-btn" id="copy-${i}">Copy update</button>
+      </div>
+      <div class="card-body">${text}</div>
+    `;
+    cardsEl.appendChild(card);
+    card.querySelector('.copy-btn').addEventListener('click', (e) => {
+      navigator.clipboard.writeText(text).then(() => {
+        e.target.textContent = 'Copied';
+        e.target.classList.add('copied');
+        setTimeout(() => { e.target.textContent = 'Copy update'; e.target.classList.remove('copied'); }, 1500);
+      });
+    });
+  });
+}
+
+function logSubmission(counts, numClients){
+  const agency = window._agency;
+  const hrs = parseFloat(document.getElementById('hrs').value) || 0;
+  const rate = parseFloat(document.getElementById('rate').value) || 0;
+  fetch('/api/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      agency, numClients,
+      numHigh: counts.high, numMedium: counts.medium, numGreen: counts.green,
+      hrsPerClient: hrs, rate, leakMonthly: numClients * hrs * rate,
+    }),
+  }).catch(() => {});
+
+  if (agency) {
+    document.getElementById('cta').href =
+      `https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit&utm_content=${encodeURIComponent(agency)}`;
+  } else {
+    document.getElementById('cta').href = 'https://calendly.com/unaiza-autonixlab/discovery-call?utm_source=leak-audit';
+  }
+}
+
+// Auto-run once with sample data on load, silently (no logging), so the page shows results immediately.
+loadSample();
+runAnalysis(false);
+</script>
+</body>
+</html>
